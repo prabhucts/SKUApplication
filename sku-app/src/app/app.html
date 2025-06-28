@@ -1,0 +1,97 @@
+<!-- CVS Health SKU Platform Main Layout -->
+<style>
+  .icon-placeholder {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    margin-right: 16px;
+    justify-content: center;
+    align-items: center;
+  }
+  .icon-text {
+    font-size: 18px;
+    line-height: 24px;
+  }
+  .cvs-logo-container {
+    background-color: #CC0000;
+    color: white;
+    padding: 16px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .cvs-logo {
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+  }
+  .app-name {
+    font-size: 14px;
+    margin-top: 4px;
+    opacity: 1;
+    font-weight: 500;
+  }
+  .toolbar-spacer {
+    flex: 1 1 auto;
+  }
+</style>
+<div class="skuapp-layout mat-app-background">
+  <mat-sidenav-container>
+    <mat-sidenav #sidenav mode="side" opened class="app-sidenav">
+      <div class="cvs-logo-container">
+        <div class="cvs-logo">CVS Health</div>
+        <div class="app-name">SKU Management</div>
+      </div>
+      <mat-nav-list>
+        <a mat-list-item routerLink="/manager" routerLinkActive="active">
+          <div class="icon-placeholder">
+            <span class="icon-text">📦</span>
+          </div>
+          <span>SKU Manager</span>
+        </a>
+        <a mat-list-item routerLink="/new" routerLinkActive="active">
+          <div class="icon-placeholder">
+            <span class="icon-text">➕</span>
+          </div>
+          <span>New SKU</span>
+        </a>
+        <a mat-list-item routerLink="/search" routerLinkActive="active">
+          <div class="icon-placeholder">
+            <span class="icon-text">🔍</span>
+          </div>
+          <span>Search/Edit</span>
+        </a>
+        <a mat-list-item routerLink="/delete" routerLinkActive="active">
+          <div class="icon-placeholder">
+            <span class="icon-text">🗑️</span>
+          </div>
+          <span>Delete</span>
+        </a>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <div class="main-content">
+        <mat-toolbar color="primary" class="main-toolbar">
+          <span>Pharmacy SKU Management Platform</span>
+          <span class="toolbar-spacer"></span>
+          <button mat-icon-button aria-label="Help">
+            <div class="icon-placeholder">
+              <span class="icon-text">❓</span>
+            </div>
+          </button>
+        </mat-toolbar>
+        <section class="panel">
+          <router-outlet></router-outlet>
+        </section>
+        <footer class="app-footer">
+          <div class="footer-content">
+            <div>© 2025 CVS Health. All rights reserved.</div>
+            <div>Pharmacy SKU Management Platform v1.0</div>
+          </div>
+        </footer>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

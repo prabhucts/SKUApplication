@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>Testing CORS with fetch to Backend API</h1>
+    <div id="result"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Test the API endpoint
+            fetch('http://localhost:5000/api/skus')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    document.getElementById('result').innerHTML += '<p>Response status: ' + response.status + '</p>';
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    document.getElementById('result').innerHTML += '<p>Data received: ' + JSON.stringify(data).substring(0, 100) + '...</p>';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML += '<p>Error: ' + error.message + '</p>';
+                });
+        });
+    </script>
+</body>
+</html>

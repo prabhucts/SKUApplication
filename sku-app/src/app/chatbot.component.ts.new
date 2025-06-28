@@ -1,0 +1,281 @@
+import { Component } from '@angular/core';
+import { ChatbotService, ChatRequest } from './chatbot.service';
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { SkuService } from './services/drug-sku.service';
+import { DrugSKU, SKUSearchCriteria, SKUStatus } from './models/drug-sku.model';
+import { SkuFormComponent } from './sku-form.component';
+import { SkuReviewQueueComponent, ReviewEvent } from './sku-review-queue.component';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'sku-chatbot',
+  template: `
+    <div class="chatbot-container">
+      <sku-review-queue
+        [reviewEvents]="reviewEvents"
+        (approve)="onApproveReview($event)"
+        (reject)="onRejectReview($event)">
+      </sku-review-queue>
+      <div class="chat-messages">
+        <div *ngFor="let msg of messages" [class.user]="msg.user" [class.bot]="!msg.user">
+          <span>{{ msg.text }}</span>
+        </div>
+      </div>
+      <form (ngSubmit)="sendMessage()" class="chat-input-row">
+        <input [(ngModel)]="input" name="chatInput" placeholder="Type your message..." autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+      <sku-form 
+        *ngIf="showSkuForm" 
+        [sku]="editSku" 
+        [submitLabel]="formMode === 'add' ? 'Add SKU' : 'Update SKU'" 
+        (save)="onSaveSku($event)" 
+        (cancel)="onCancelSku()">
+      </sku-form>
+      <div *ngIf="showDeleteConfirm" class="delete-confirm">
+        <p>Are you sure you want to delete SKU {{ deleteSkuNumber }}?</p>
+        <button (click)="onDeleteSku(true)">Yes, Delete</button>
+        <button (click)="onDeleteSku(false)">Cancel</button>
+      </div>
+      <div *ngIf="showSearchResults" class="search-results">
+        <h4>Search Results</h4>
+        <ul>
+          <li *ngFor="let sku of searchResults">
+            {{ sku.ndc }} - {{ sku.name }} ({{ sku.status }})
+          </li>
+        </ul>
+        <button (click)="onCloseSearchResults()">Close</button>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .chatbot-container { display: flex; flex-direction: column; height: 100%; }
+    .chat-messages { flex: 1; overflow-y: auto; margin-bottom: 1rem; }
+    .chat-messages .user { text-align: right; color: #6366f1; margin: 0.5rem 0; }
+    .chat-messages .bot { text-align: left; color: #22223b; margin: 0.5rem 0; }
+    .chat-input-row { display: flex; gap: 0.5rem; }
+    .chat-input-row input { flex: 1; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #e5e7eb; }
+    .chat-input-row button { padding: 0.5rem 1.2rem; border-radius: 0.5rem; background: #6366f1; color: #fff; border: none; }
+    .delete-confirm, .search-results { background: #f9fafb; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
+  `],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    HttpClientModule,
+    SkuFormComponent,
+    SkuReviewQueueComponent
+  ]
+})
+export class ChatbotComponent {
+  messages: { user: boolean, text: string }[] = [
+    { user: false, text: "Hello! I'm your SKU assistant. How can I help you today?" }
+  ];
+  input = '';
+  showSkuForm = false;
+  showDeleteConfirm = false;
+  showSearchResults = false;
+  formMode: 'add' | 'edit' = 'add';
+  editSku: DrugSKU = {
+    id: 0,
+    ndc: '',
+    name: '',
+    manufacturer: '',
+    dosage_form: '',
+    strength: '',
+    package_size: '',
+    status: SKUStatus.DRAFT,
+    created_at: new Date().toISOString()
+  };
+  deleteSkuNumber: string | null = null;
+  searchResults: DrugSKU[] = [];
+  reviewEvents: ReviewEvent[] = [];
+
+  constructor(private chatbotService: ChatbotService, private skuService: SkuService) {}
+
+  sendMessage() {
+    if (!this.input.trim()) return;
+    const userMsg = { user: true, text: this.input };
+    this.messages.push(userMsg);
+    
+    // Use the enhanced chatbot service
+    this.chatbotService.processMessage(this.input).subscribe({
+      next: (response) => {
+        // Add chatbot response to messages
+        this.messages.push({ user: false, text: response.reply });
+        
+        // Handle any actions based on the response
+        if (response.action === 'showForm') {
+          this.showSkuForm = true;
+          this.formMode = response.intent === 'add' ? 'add' : 'edit';
+          
+          if (response.skuDetails) {
+            // For edit operations, use the provided SKU details
+            if (this.formMode === 'edit') {
+              this.editSku = {
+                id: response.skuDetails.id || 0,
+                ndc: response.skuDetails.ndc || '',
+                name: response.skuDetails.name || '',
+                manufacturer: response.skuDetails.manufacturer || '',
+                dosage_form: response.skuDetails.dosage_form || '',
+                strength: response.skuDetails.strength || '',
+                package_size: response.skuDetails.package_size || '',
+                status: response.skuDetails.status || SKUStatus.DRAFT,
+                created_at: response.skuDetails.created_at || new Date().toISOString()
+              };
+            } else {
+              // For add operations with partial details from the conversation
+              this.editSku = {
+                id: 0,
+                ndc: response.skuDetails.ndc || '',
+                name: response.skuDetails.name || '',
+                manufacturer: response.skuDetails.manufacturer || '',
+                dosage_form: response.skuDetails.dosage_form || '',
+                strength: response.skuDetails.strength || '',
+                package_size: response.skuDetails.package_size || '',
+                status: SKUStatus.DRAFT,
+                created_at: new Date().toISOString()
+              };
+            }
+          } else {
+            // Default empty SKU
+            this.editSku = {
+              id: 0,
+              ndc: '',
+              name: '',
+              manufacturer: '',
+              dosage_form: '',
+              strength: '',
+              package_size: '',
+              status: SKUStatus.DRAFT,
+              created_at: new Date().toISOString()
+            };
+          }
+        } 
+        else if (response.action === 'showSearchResults' && response.intent === 'search') {
+          this.showSearchResults = true;
+          // The skuDetails might be available in the response depending on implementation
+          // For now, we'll use the service to fetch results
+          this.skuService.searchSKUs(this.input.replace(/search (for |)(all |)((sku|drug)s|sku|drug) (with |containing |named |like |)?/i, '')).subscribe({
+            next: (result: { items: DrugSKU[], total: number }) => {
+              this.searchResults = result.items;
+            },
+            error: (error) => {
+              console.error('Error fetching search results:', error);
+            }
+          });
+        }
+        else if (response.action === 'confirmDelete' && response.confirmationRequired && response.confirmationType === 'delete') {
+          this.showDeleteConfirm = true;
+          this.deleteSkuNumber = response.skuDetails?.ndc || null;
+        }
+      },
+      error: (error) => {
+        console.error('Error processing message:', error);
+        this.messages.push({ user: false, text: 'Sorry, I encountered an error processing your request.' });
+      }
+    });
+    
+    this.input = '';
+  }
+
+  formatSkuDetails(details: any): string {
+    return `NDC: ${details.ndc}, Name: ${details.name}, Manufacturer: ${details.manufacturer}`;
+  }
+
+  onSaveSku(sku: DrugSKU) {
+    if (this.formMode === 'add') {
+      // Instead of direct add, queue for review
+      this.reviewEvents.push({ type: 'create', sku: { ...sku, status: SKUStatus.ACTIVE } });
+      this.messages.push({ user: false, text: `SKU ${sku.ndc} submitted for review.` });
+      this.showSkuForm = false;
+    } else if (this.formMode === 'edit' && sku.ndc) {
+      // Instead of direct update, queue for review with diff
+      const oldSku = this.editSku;
+      const diff: Partial<DrugSKU> = {};
+      if (oldSku) {
+        for (const key of Object.keys(sku) as (keyof DrugSKU)[]) {
+          if (sku[key] !== oldSku[key]) {
+            (diff as any)[key] = sku[key];
+          }
+        }
+      }
+      this.reviewEvents.push({ type: 'update', sku: { ...sku, status: SKUStatus.ACTIVE }, diff });
+      this.messages.push({ user: false, text: `SKU ${sku.ndc} update submitted for review.` });
+      this.showSkuForm = false;
+    }
+  }
+
+  onDeleteSku(confirm: boolean) {
+    if (confirm && this.deleteSkuNumber) {
+      // Instead of direct delete, queue for review
+      this.skuService.getSKU(this.deleteSkuNumber).subscribe({
+        next: (sku: DrugSKU) => {
+          this.reviewEvents.push({ type: 'delete', sku: { ...sku, status: SKUStatus.ACTIVE } });
+          this.messages.push({ user: false, text: `SKU ${this.deleteSkuNumber} delete submitted for review.` });
+          this.showDeleteConfirm = false;
+          this.deleteSkuNumber = null;
+        },
+        error: () => {
+          this.messages.push({ user: false, text: 'Failed to fetch SKU for delete review.' });
+          this.showDeleteConfirm = false;
+          this.deleteSkuNumber = null;
+        }
+      });
+    } else {
+      this.showDeleteConfirm = false;
+      this.deleteSkuNumber = null;
+    }
+  }
+
+  onApproveReview(index: number) {
+    const event = this.reviewEvents[index];
+    if (!event) return;
+    if (event.type === 'create') {
+      this.skuService.createSKU(event.sku as DrugSKU).subscribe({
+        next: (sku: DrugSKU) => {
+          this.messages.push({ user: false, text: `SKU ${event.sku.ndc} approved and created.` });
+          this.reviewEvents.splice(index, 1);
+        },
+        error: () => {
+          this.messages.push({ user: false, text: 'Failed to create SKU.' });
+        }
+      });
+    } else if (event.type === 'update') {
+      this.skuService.updateSKU(event.sku.ndc, event.sku as Partial<DrugSKU>).subscribe({
+        next: (sku: DrugSKU) => {
+          this.messages.push({ user: false, text: `SKU ${event.sku.ndc} approved and updated.` });
+          this.reviewEvents.splice(index, 1);
+        },
+        error: () => {
+          this.messages.push({ user: false, text: 'Failed to update SKU.' });
+        }
+      });
+    } else if (event.type === 'delete') {
+      this.skuService.deleteSKU(event.sku.ndc).subscribe({
+        next: () => {
+          this.messages.push({ user: false, text: `SKU ${event.sku.ndc} approved and deleted.` });
+          this.reviewEvents.splice(index, 1);
+        },
+        error: () => {
+          this.messages.push({ user: false, text: 'Failed to delete SKU.' });
+        }
+      });
+    }
+  }
+
+  onRejectReview(index: number) {
+    const event = this.reviewEvents[index];
+    this.messages.push({ user: false, text: `${event.type} action for SKU ${event.sku.ndc} was rejected.` });
+    this.reviewEvents.splice(index, 1);
+  }
+
+  onCloseSearchResults() {
+    this.showSearchResults = false;
+  }
+
+  onCancelSku() {
+    this.showSkuForm = false;
+  }
+}

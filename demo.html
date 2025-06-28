@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SKU Manager Test - Image OCR & Change Detection</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        #results { margin-top: 20px; }
+        .notification { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; }
+        .change-item { background: #f8f9fa; margin: 5px 0; padding: 8px; border-left: 3px solid #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🚀 SKU Management System - Live Demo</h1>
+    <p><strong>Features:</strong> Image Upload & OCR + Contextual Change Detection</p>
+    
+    <div class="test-section">
+        <h2>📱 Quick Access Links</h2>
+        <button class="button" onclick="window.open('http://localhost:4200', '_blank')">Open Main App</button>
+        <button class="button" onclick="window.open('http://localhost:4200/manager', '_blank')">Open SKU Manager</button>
+        <button class="button" onclick="testBackendConnection()">Test Backend</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🖼️ Feature 1: OCR Processing</h2>
+        <p>Upload an image with pharmaceutical text to extract SKU information automatically.</p>
+        <input type="file" id="imageFile" accept="image/*" />
+        <button class="button" onclick="testOCRFeature()">Test OCR Upload</button>
+        <div id="ocrResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔄 Feature 2: Change Detection</h2>
+        <p>Simulate dataset changes and see contextual notifications.</p>
+        <button class="button" onclick="simulateDatasetChange()">Simulate Dataset Change</button>
+        <button class="button" onclick="simulateChatContext()">Simulate Chat Context</button>
+        <button class="button" onclick="showNotifications()">Show Change Notifications</button>
+        <div id="changeResults"></div>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        async function testBackendConnection() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">🔗 Testing backend connection...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/skus`);
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="success">✅ Backend Connected Successfully!</div>
+                        <div>📊 Found ${data.items.length} SKUs in database</div>
+                        <div>🔗 API URL: ${API_BASE}</div>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="error">❌ Backend Error: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Connection Failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testOCRFeature() {
+            const fileInput = document.getElementById('imageFile');
+            const resultsDiv = document.getElementById('ocrResults');
+            
+            if (!fileInput.files[0]) {
+                resultsDiv.innerHTML = '<div class="error">❌ Please select an image file first</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="info">🔄 Processing image with OCR...</div>';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/extract-ocr`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="success">✅ OCR Processing Complete!</div>
+                        <div><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</div>
+                        <div><strong>Extracted Text:</strong></div>
+                        <pre style="background: #f8f9fa; padding: 10px; margin: 5px 0;">${result.extracted_text}</pre>
+                        <div><strong>Parsed SKU Data:</strong></div>
+                        <div class="change-item">
+                            <strong>NDC:</strong> ${result.sku_data.ndc || 'Not detected'}<br>
+                            <strong>Name:</strong> ${result.sku_data.name || 'Not detected'}<br>
+                            <strong>Manufacturer:</strong> ${result.sku_data.manufacturer || 'Not detected'}<br>
+                            <strong>Dosage Form:</strong> ${result.sku_data.dosage_form || 'Not detected'}<br>
+                            <strong>Strength:</strong> ${result.sku_data.strength || 'Not detected'}<br>
+                            <strong>Package Size:</strong> ${result.sku_data.package_size || 'Not detected'}
+                        </div>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `<div class="error">❌ OCR Failed: ${error}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ OCR Error: ${error.message}</div>`;
+            }
+        }
+
+        async function simulateDatasetChange() {
+            const resultsDiv = document.getElementById('changeResults');
+            resultsDiv.innerHTML = '<div class="info">🔄 Simulating dataset changes...</div>';
+
+            try {
+                // Get current SKUs
+                const response = await fetch(`${API_BASE}/skus`);
+                const data = await response.json();
+                
+                if (data.items.length > 0) {
+                    const originalSku = data.items[0];
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="success">✅ Dataset Change Simulation</div>
+                        <div class="notification">
+                            <strong>🔔 Change Detected!</strong><br>
+                            <strong>SKU:</strong> ${originalSku.ndc} - ${originalSku.name}<br>
+                            <strong>Source:</strong> External Dataset<br>
+                            <strong>Changes Detected:</strong>
+                            <div class="change-item">
+                                <strong>Name:</strong> ${originalSku.name} → <span style="color: green;">UPDATED ${originalSku.name}</span><br>
+                                <strong>Manufacturer:</strong> ${originalSku.manufacturer} → <span style="color: green;">UPDATED ${originalSku.manufacturer}</span>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button class="button" onclick="approveChange('${originalSku.id}')">✅ Approve Changes</button>
+                                <button class="button" onclick="rejectChange('${originalSku.id}')">❌ Reject Changes</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Simulation Error: ${error.message}</div>`;
+            }
+        }
+
+        function simulateChatContext() {
+            const resultsDiv = document.getElementById('changeResults');
+            
+            resultsDiv.innerHTML = `
+                <div class="success">✅ Chat Context Simulation</div>
+                <div class="notification">
+                    <strong>💬 Chat Context Analysis</strong><br>
+                    <strong>Session:</strong> session_${Date.now()}<br>
+                    <strong>Tracked SKUs:</strong> 3 SKUs mentioned in conversation<br>
+                    <strong>Context Changes:</strong>
+                    <div class="change-item">
+                        User mentioned: "Update aspirin strength to 325mg"<br>
+                        System detected: NDC 12345-678-90 (Aspirin)<br>
+                        <strong>Proposed Change:</strong> Strength: 81mg → 325mg
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="button" onclick="alert('Change approved via chat context!')">✅ Apply Context Change</button>
+                        <button class="button" onclick="alert('Change rejected!')">❌ Ignore Context</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showNotifications() {
+            const resultsDiv = document.getElementById('changeResults');
+            
+            resultsDiv.innerHTML = `
+                <div class="success">✅ Active Notifications</div>
+                <div class="notification">
+                    <strong>📊 Notification Summary</strong><br>
+                    <strong>Pending Reviews:</strong> 2 changes awaiting approval<br>
+                    <strong>Sources:</strong>
+                    <div class="change-item">
+                        🖼️ OCR Processing: 1 notification<br>
+                        📊 Dataset Changes: 1 notification<br>
+                        💬 Chat Context: 0 notifications
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="button" onclick="window.open('http://localhost:4200/manager', '_blank')">🔗 Open SKU Manager</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function approveChange(skuId) {
+            alert(`✅ Change approved for SKU ID: ${skuId}\\n\\nIn the full application, this would:\\n- Update the SKU in the database\\n- Log the approval action\\n- Send confirmation to user`);
+        }
+
+        function rejectChange(skuId) {
+            alert(`❌ Change rejected for SKU ID: ${skuId}\\n\\nIn the full application, this would:\\n- Discard the proposed changes\\n- Log the rejection action\\n- Notify the user of rejection`);
+        }
+
+        // Auto-test connection on page load
+        window.onload = function() {
+            testBackendConnection();
+        };
+    </script>
+</body>
+</html>

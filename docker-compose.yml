@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=sqlite:///./skuapp.db
+      - CORS_ORIGINS=http://localhost:4200
+    volumes:
+      - ./backend:/app
+      - sqlite_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./sku-app
+      dockerfile: Dockerfile
+    ports:
+      - "4200:4200"
+    depends_on:
+      - backend
+    volumes:
+      - ./sku-app:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  sqlite_data:

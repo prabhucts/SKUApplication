@@ -1,0 +1,98 @@
+# Azure DevOps Pipeline for SKU Management Application
+# This pipeline builds and deploys both frontend and backend containers to Azure App Service
+
+# Trigger pipeline on main branch changes
+trigger:
+  - main
+
+# Pipeline variables - Configure these in Azure DevOps
+variables:
+  # Service connection name for Azure Container Registry (ACR)
+  # Create this in Project Settings > Service Connections
+  dockerRegistryServiceConnection: 'skuapp-acr'
+  
+  # Your Azure Container Registry URL
+  # Format: <registry-name>.azurecr.io
+  containerRegistry: 'skuappacr.azurecr.io'
+  
+  # Container image names
+  backendImageName: 'skuapp-backend'
+  frontendImageName: 'skuapp-frontend'
+  
+  # Azure App Service names
+  # These should match the web apps created in Azure
+  backendServiceName: 'skuapp-backend'
+  frontendServiceName: 'skuapp-frontend'
+  
+  # Dynamic tag based on build ID
+  tag: '$(Build.BuildId)'
+
+stages:
+- stage: Build
+  displayName: Build and Push Stage
+  jobs:
+  - job: Build
+    displayName: Build and Push
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    # Build and push Backend Docker image
+    - task: Docker@2
+      displayName: Build and Push Backend Image
+      inputs:
+        command: buildAndPush
+        repository: $(backendImageName)
+        dockerfile: '$(Build.SourcesDirectory)/backend/Dockerfile'
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          latest
+
+    # Build and push Frontend Docker image
+    - task: Docker@2
+      displayName: Build and Push Frontend Image
+      inputs:
+        command: buildAndPush
+        repository: $(frontendImageName)
+        dockerfile: '$(Build.SourcesDirectory)/sku-app/Dockerfile'
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          latest
+
+- stage: Deploy
+  displayName: Deploy Stage
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # Deploy Backend
+          - task: AzureWebAppContainer@1
+            displayName: Deploy Backend Container
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appName: $(backendServiceName)
+              containers: $(containerRegistry)/$(backendImageName):$(tag)
+              appSettings: |
+                -WEBSITES_PORT 5000
+                -DATABASE_URL "sqlite:///./skuapp.db"
+                -CORS_ORIGINS "https://$(frontendServiceName).azurewebsites.net"
+
+          # Deploy Frontend
+          - task: AzureWebAppContainer@1
+            displayName: Deploy Frontend Container
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appName: $(frontendServiceName)
+              containers: $(containerRegistry)/$(frontendImageName):$(tag)
+              appSettings: |
+                -WEBSITES_PORT 80
+                -API_URL "https://$(backendServiceName).azurewebsites.net"

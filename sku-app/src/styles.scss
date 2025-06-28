@@ -1,0 +1,172 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Import prebuilt theme */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: #f5f5f5;
+}
+
+body {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Layout styles */
+.skuapp-layout {
+  display: flex;
+  height: 100vh;
+}
+
+/* CVS Health specific colors */
+.cvs-red {
+  background-color: #CC0000;
+  color: white;
+}
+
+.cvs-blue {
+  background-color: #003366;
+  color: white;
+}
+
+/* Material Icons font definitions */
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format('woff2');
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Global styles
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: #f5f5f5; /* CVS Health light gray */
+}
+
+body {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+// Layout styles
+.skuapp-layout {
+  display: flex;
+  height: 100vh;
+}
+
+// CVS Health specific styles
+.mat-mdc-card {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mat-mdc-card-header {
+  background-color: #003366; /* CVS Health dark blue */
+  color: white;
+  padding: 16px !important;
+}
+
+.mat-mdc-card-title {
+  margin-bottom: 0 !important;
+  font-size: 18px !important;
+}
+
+.mat-mdc-card-content {
+  padding: 24px !important;
+}
+
+// Status colors for SKUs
+.status-approved {
+  color: #00a651 !important; // Green
+  font-weight: bold;
+}
+
+.status-pending {
+  color: #ff9f00 !important; // Orange
+  font-weight: bold;
+}
+
+.status-rejected {
+  color: #CC0000 !important; // CVS Red
+  font-weight: bold;
+}
+
+// Focus color for form fields
+.mat-mdc-form-field.mat-focused .mat-mdc-form-field-ripple {
+  background-color: #CC0000 !important; // CVS Red
+}
+
+/* Override Material theme variables for better text visibility */
+:root {
+  --mat-card-subtitle-text-color: rgba(0, 0, 0, 0.7) !important;
+  --mdc-text-button-label-text-color: #003366 !important;
+  --mdc-filled-text-field-label-text-color: rgba(0, 0, 0, 0.7) !important;
+  --mat-card-container-text-color: rgba(0, 0, 0, 0.87) !important;
+  --mat-tab-header-disabled-ripple-color: rgba(0, 0, 0, 0.3) !important;
+  --mat-tab-header-pagination-icon-color: #003366 !important;
+}
+
+/* Ensure proper contrast for card headers */
+.mat-mdc-card-subtitle {
+  /* Only apply white color when in a colored header */
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Card headers with dark backgrounds should have white text */
+.mat-mdc-card-header .mat-mdc-card-subtitle {
+  color: white !important;
+}
+
+/* Override for tab labels with proper contrast */
+.mat-mdc-tab .mdc-tab__text-label {
+  color: #003366 !important;
+}
+
+/* In tab headers with dark backgrounds, use white text */
+.mat-tab-header.mat-mdc-tab-header {
+  .mat-mdc-tab .mdc-tab__text-label {
+    color: white !important;
+  }
+}
+
+/* Override for list items in navigation */
+.mat-mdc-list-item-unscoped-content {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+/* In sidebar navigation, use white text */
+.app-sidenav .mat-mdc-list-item-unscoped-content {
+  color: white !important;
+}
