@@ -112,7 +112,7 @@ export class ChatbotService {
       sku => sku.name.toLowerCase().includes(skuDetails.name?.toLowerCase() || '')
     );
     
-    if (similarSkus.length > 0) {
+    if (similarSkus.length > 0 && skuDetails.name) {
       return of({
         reply: `I found existing SKUs with similar names. Did you mean one of these?\n${
           similarSkus.slice(0, 3).map(sku => `- ${sku.name} (${sku.ndc})`).join('\n')
@@ -122,11 +122,12 @@ export class ChatbotService {
       });
     }
     
+    // Redirect to the new SKU page
     return of({
-      reply: "Let's add a new SKU. Please provide the following details or use the form below:",
+      reply: "I'll help you add a new SKU. Opening the new SKU form now.",
       intent: 'add',
-      action: 'showForm',
-      skuDetails
+      action: 'navigate',
+      data: { route: '/new' }
     });
   }
 
@@ -234,62 +235,15 @@ export class ChatbotService {
     
     console.log('Chatbot: Searching for term:', searchTerm ? `"${searchTerm}"` : 'ALL SKUs');
     
-    if (!searchTerm) {
-      return this.skuService.getAllSKUs().pipe(
-        map(response => {
-          console.log('Chatbot: All SKUs search results:', response);
-          const skuCount = response.items.length;
-          const skuList = response.items.slice(0, 5).map(sku => `- ${sku.name} (${sku.ndc})`).join('\n');
-          
-          return {
-            reply: `Found ${skuCount} SKUs. Here are the first 5:\n${skuList}${skuCount > 5 ? '\n...and more' : ''}`,
-            intent: 'search',
-            action: 'showSearchResults',
-            skuDetails: {
-              searchTerm: ''
-            }
-          };
-        }),
-        catchError(error => {
-          console.log('Chatbot: Error getting all SKUs:', error);
-          return of({
-            reply: `I had trouble retrieving SKUs. Error: ${error.message}`,
-            intent: 'search'
-          });
-        })
-      );
-    } else {
-      return this.skuService.searchSKUs(searchTerm).pipe(
-        map(response => {
-          console.log('Chatbot: Search results for term:', searchTerm, response);
-          
-          if (response.items.length === 0) {
-            return {
-              reply: `I couldn't find any SKUs matching "${searchTerm}".`,
-              intent: 'search'
-            };
-          }
-          
-          const skuList = response.items.map(sku => `- ${sku.name} (${sku.ndc})`).join('\n');
-          
-          return {
-            reply: `Found ${response.items.length} SKUs matching "${searchTerm}":\n${skuList}`,
-            intent: 'search',
-            action: 'showSearchResults',
-            skuDetails: {
-              searchTerm: searchTerm
-            }
-          };
-        }),
-        catchError(error => {
-          console.log('Chatbot: Error searching for term:', searchTerm, error);
-          return of({
-            reply: `I had trouble searching for "${searchTerm}". Error: ${error.message}`,
-            intent: 'search'
-          });
-        })
-      );
-    }
+    // Navigate directly to search page with or without term
+    return of({
+      reply: searchTerm ? 
+        `Searching for SKUs matching "${searchTerm}". Opening search page.` : 
+        `Opening search page for all SKUs.`,
+      intent: 'search',
+      action: 'navigate',
+      data: { route: '/search', queryParams: searchTerm ? { term: searchTerm } : {} }
+    });
   }
 
   private handleDeleteSkuIntent(message: string): Observable<ChatResponse> {
