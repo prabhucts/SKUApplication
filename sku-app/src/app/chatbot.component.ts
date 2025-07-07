@@ -208,7 +208,7 @@ export class ChatbotComponent {
   }
 
   editDuplicate(sku: DrugSKU) {
-    this.router.navigate(['/edit', sku.id]);
+    this.router.navigate(['/edit-sku', sku.id]);
   }
 
   private addMessage(text: string, isUser: boolean) {
@@ -235,15 +235,6 @@ export class ChatbotComponent {
       const response = await firstValueFrom(this.chatbotService.sendMessage({ text: userMessage }));
       if (response) {
         this.addMessage(response.reply, false);
-        
-        // Handle navigation actions
-        if (response.action === 'navigate' && response.data?.route) {
-          if (response.data.queryParams) {
-            this.router.navigate([response.data.route], { queryParams: response.data.queryParams });
-          } else {
-            this.router.navigate([response.data.route]);
-          }
-        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
