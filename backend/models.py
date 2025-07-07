@@ -4,6 +4,8 @@ from sqlalchemy.sql import func
 from enum import Enum
 from datetime import datetime
 from sqlalchemy.orm import sessionmaker
+import os
+import logging
 
 Base = declarative_base()
 
@@ -32,13 +34,22 @@ class DrugSKU(Base):
     created_by = Column(String)
     reviewed_by = Column(String)
 
-# Database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sku_database.db"
-
-# Create engine
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+# Get database URL from environment or use SQLite as default
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL", 
+    "sqlite:///./sku_database.db"
 )
+
+# Create engine with appropriate parameters based on database type
+if DATABASE_URL.startswith("postgresql"):
+    # PostgreSQL engine without check_same_thread
+    engine = create_engine(DATABASE_URL)
+else:
+    # SQLite engine with check_same_thread=False
+    engine = create_engine(
+        DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create all tables
